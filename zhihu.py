@@ -49,65 +49,52 @@
  #                               $&########&o                                                       
 '''
 
-import os
-import re
-import time
-import json
-import platform
-import requests
-import html2text
-import ConfigParser
-from bs4 import BeautifulSoup
-import sys
+# Build-in / Std
+import os, sys, time, platform, random
+import re, json, cookielib
+
+# requirements
+import requests, termcolor, html2text
+try:
+    from bs4 import BeautifulSoup
+except:
+    import BeautifulSoup
+
+# module
+from auth import islogin
+from auth import Logging
+
+
+"""
+    Note:
+        1. 身份验证由 `auth.py` 完成。
+        2. 身份信息保存在当前目录的 `cookies` 文件中。
+        3. `requests` 对象可以直接使用，身份信息已经自动加载。
+
+    By Luozijun (https://github.com/LuoZijun), 09/09 2015
+
+"""
+requests = requests.Session()
+requests.cookies = cookielib.LWPCookieJar('cookies')
+try:
+    requests.cookies.load(ignore_discard=True)
+except:
+    Logging.error(u"你还没有登录知乎哦 ...")
+    Logging.info(u"执行 `python auth.py` 即可以完成登录。")
+    raise Exception("无权限(403)")
+
+
+if islogin() != True:
+    Logging.error(u"你的身份信息已经失效，请重新生成身份信息( `python auth.py` )。")
+    raise Exception("无权限(403)")
+
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-session = None
-
-cookies = {}
-
-
-def create_session():
-    global session
-    global cookies
-    cf = ConfigParser.ConfigParser()
-    cf.read("config.ini")
-    cookies = cf._sections['cookies']
-
-    email = cf.get("info", "email")
-    password = cf.get("info", "password")
-    cookies = dict(cookies)
-
-    s = requests.session()
-    login_data = {"email": email, "password": password}
-    header = {
-        'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:34.0) Gecko/20100101 Firefox/34.0",
-        'Host': "www.zhihu.com",
-        'Referer': "http://www.zhihu.com/",
-        'X-Requested-With': "XMLHttpRequest"
-    }
-
-    r = s.post('http://www.zhihu.com/login/email', data=login_data, headers=header)
-    if r.json()["r"] == 1:
-        print "Login Failed, reason is:"
-        for m in r.json()["data"]:
-            print r.json()["data"][m]
-        print "Use cookies"
-        has_cookies = False
-        for key in cookies:
-            if key != '__name__' and cookies[key] != '':
-                has_cookies = True
-                break
-        if has_cookies == False:
-            raise ValueError("请填写config.ini文件中的cookies项.")
-    session = s
-
 
 class Question:
     url = None
     soup = None
-    # session = None
-
 
     def __init__(self, url, title=None):
 
@@ -115,38 +102,12 @@ class Question:
             raise ValueError("\"" + url + "\"" + " : it isn't a question url.")
         else:
             self.url = url
-            if title != None:
-                self.title = title
-
-    # def create_session(self):
-    # cf = ConfigParser.ConfigParser()
-    # cf.read("config.ini")
-    # email = cf.get("info", "email")
-    # password = cf.get("info", "password")
-    # s = requests.session()
-    # login_data = {"email": email, "password": password}
-    # s.post('http://www.zhihu.com/login', login_data)
-    # self.session = s
+        
+        if title != None: self.title = title
 
     def parser(self):
-
-        global session
-        global cookies
-
-        if session == None:
-            create_session()
-        s = session
-        has_cookies = False
-        for key in cookies:
-            if key != '__name__' and cookies[key] != '':
-                has_cookies = True
-                r = s.get(self.url, cookies=cookies)
-                break
-        if has_cookies == False:
-            r = s.get(self.url)
-            # print "aaaaaaaaaaaaaaaaaaaa"
-        soup = BeautifulSoup(r.content)
-        self.soup = soup
+        r = requests.get(self.url)
+        self.soup = BeautifulSoup(r.content, "lxml")
 
     def get_title(self):
         if hasattr(self, "title"):
@@ -208,10 +169,6 @@ class Question:
         return topics
 
     def get_all_answers(self):
-
-        global session
-        global cookies
-
         answers_num = self.get_answers_num()
         if answers_num == 0:
             print "No answer."
@@ -225,7 +182,7 @@ class Question:
                     for j in xrange(min(answers_num, 50)):
                         if self.soup == None:
                             self.parser()
-                        soup = BeautifulSoup(self.soup.encode("utf-8"))
+                        soup = BeautifulSoup(self.soup.encode("utf-8"), "lxml")
 
                         is_my_answer = False
                         if soup.find_all("div", class_="zm-item-answer")[j].find("span", class_="count") == None:
@@ -275,7 +232,6 @@ class Question:
                         answer = Answer(answer_url, self, author, upvote, content)
                         yield answer
                 else:
-                    s = session
                     post_url = "http://www.zhihu.com/node/QuestionAnswerListV2"
                     _xsrf = self.soup.find("input", attrs={'name': '_xsrf'})["value"]
                     offset = i * 50
@@ -291,19 +247,13 @@ class Question:
                         'Host': "www.zhihu.com",
                         'Referer': self.url
                     }
-                    has_cookies = False
-                    for key in cookies:
-                        if key != '__name__' and cookies[key] != '':
-                            has_cookies = True
-                            r = s.post(post_url, data=data, headers=header, cookies=cookies)
-                            break
-                    if has_cookies == False:
-                        r = s.post(post_url, data=data, headers=header)
+                    r = requests.post(post_url, data=data, headers=header)
+
                     answer_list = r.json()["msg"]
                     for j in xrange(min(answers_num - i * 50, 50)):
                         soup = BeautifulSoup(self.soup.encode("utf-8"))
 
-                        answer_soup = BeautifulSoup(answer_list[j])
+                        answer_soup = BeautifulSoup(answer_list[j], "lxml")
                         
                         if answer_soup.find("div", class_=" zm-editable-content clearfix") == None:
                             continue
@@ -385,32 +335,8 @@ class User:
             if user_id != None:
                 self.user_id = user_id
 
-    # def create_session(self):
-    # cf = ConfigParser.ConfigParser()
-    # cf.read("config.ini")
-    # email = cf.get("info", "email")
-    # password = cf.get("info", "password")
-    # s = requests.session()
-    # login_data = {"email": email, "password": password}
-    # s.post('http://www.zhihu.com/login', login_data)
-    # self.session = s
-
     def parser(self):
-
-        global session
-        global cookies
-
-        if session == None:
-            create_session()
-        s = session
-        has_cookies = False
-        for key in cookies:
-            if key != '__name__' and cookies[key] != '':
-                has_cookies = True
-                r = s.get(self.user_url, cookies=cookies)
-                break
-        if has_cookies == False:
-            r = s.get(self.user_url)
+        r = requests.get(self.user_url)
         soup = BeautifulSoup(r.content, "lxml")
         self.soup = soup
 
@@ -519,73 +445,56 @@ class User:
             return collections_num
 
     def get_followees(self):
+        # 获取该用户关注的人
 
-        global session
-        global cookies
+        if self.user_url == None: return []
+        followees_num = self.get_followees_num()
+        if followees_num < 1: return []
+        elif followees_num < 21: limit = 1
+        elif followees_num > 20:
+            if followees_num%20 != 0: limit = followees_num/20+1
+            else: limit = followees_num/20
+        else: limit = 0
 
-        if self.user_url == None:
-            print "I'm anonymous user."
-            return
-            yield
-        else:
-            followees_num = self.get_followees_num()
-            if followees_num == 0:
-                return
-                yield
+        def fetch(data=None, offset=0, size=20, limit=1):
+            """
+                offset: 起始偏移量
+                size: 20 (不能修改)
+                limit: 最多向下几页
+            """
+            result = []
+            if limit < 1: return result
+            elif int(limit) == 1:
+                url = "http://www.zhihu.com/node/ProfileFolloweesListV2"
+                data['params']['offset'] = offset
+                data2 = json.loads(json.dumps(data))
+                data2['params'] = json.dumps(data['params'])
+                res = requests.post(url, data=data2 )
+                # parse ...
+                for user_dom in res.json()["msg"]:
+                    followee_soup = BeautifulSoup(user_dom, "lxml")
+                    followee_dom  = followee_soup.find("h2", class_="zm-list-content-title").a
+                    followee_url  = followee_dom["href"]
+                    followee_id   = followee_dom.string.encode("utf-8")
+                    result.append(User(followee_url, followee_id))
+                return result
             else:
-                if session == None:
-                    create_session()
-                s = session
-                followee_url = self.user_url + "/followees"
-                has_cookies = False
-                for key in cookies:
-                    if key != '__name__' and cookies[key] != '':
-                        has_cookies = True
-                        r = s.get(followee_url, cookies=cookies)
-                        break
-                if has_cookies == False:
-                    r = s.get(followee_url)
-                soup = BeautifulSoup(r.content)
-                for i in xrange((followees_num - 1) / 20 + 1):
-                    if i == 0:
-                        user_url_list = soup.find_all("h2", class_="zm-list-content-title")
-                        for j in xrange(min(followees_num, 20)):
-                            yield User(user_url_list[j].a["href"], user_url_list[j].a.string.encode("utf-8"))
-                    else:
-                        post_url = "http://www.zhihu.com/node/ProfileFolloweesListV2"
-                        _xsrf = soup.find("input", attrs={'name': '_xsrf'})["value"]
-                        offset = i * 20
-                        hash_id = re.findall("hash_id&quot;: &quot;(.*)&quot;},", r.text)[0]
-                        params = json.dumps({"offset": offset, "order_by": "created", "hash_id": hash_id})
-                        data = {
-                            '_xsrf': _xsrf,
-                            'method': "next",
-                            'params': params
-                        }
-                        header = {
-                            'User-Agent': "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:34.0) Gecko/20100101 Firefox/34.0",
-                            'Host': "www.zhihu.com",
-                            'Referer': followee_url
-                        }
-                        has_cookies = False
-                        for key in cookies:
-                            if key != '__name__' and cookies[key] != '':
-                                has_cookies = True
-                                r_post = s.post(post_url, data=data, headers=header, cookies=cookies)
-                                break
-                        if has_cookies == False:
-                            r_post = s.post(post_url, data=data, headers=header)
-                        followee_list = r_post.json()["msg"]
-                        for j in xrange(min(followees_num - i * 20, 20)):
-                            followee_soup = BeautifulSoup(followee_list[j])
-                            user_link = followee_soup.find("h2", class_="zm-list-content-title").a
-                            yield User(user_link["href"], user_link.string.encode("utf-8"))
+                for i in range(int(limit)):
+                    map(lambda r: result.append(r), fetch(data=data, offset=offset*size+i, limit=1 ) )
+                return result
+        # search hash and xsrf
+        url = self.user_url + "/followees"
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, "lxml")
+        _xsrf = soup.find("input", attrs={'name': '_xsrf'})["value"]
+        hash_id = re.findall("hash_id&quot;: &quot;(.*)&quot;},", r.text)[0]
 
+        data = {'_xsrf': _xsrf, 'method': "next" }
+        data['params'] = {"offset": 0, "order_by": "created", "hash_id": hash_id}
+
+        return fetch(data=data, offset=0, limit=limit)
+        
     def get_followers(self):
-
-        global session
-        global cookies
-
         if self.user_url == None:
             print "I'm anonymous user."
             return
@@ -596,19 +505,10 @@ class User:
                 return
                 yield
             else:
-                if session == None:
-                    create_session()
-                s = session
                 follower_url = self.user_url + "/followers"
-                has_cookies = False
-                for key in cookies:
-                    if key != '__name__' and cookies[key] != '':
-                        has_cookies = True
-                        r = s.get(follower_url, cookies=cookies)
-                        break
-                if has_cookies == False:
-                    r = s.get(follower_url)
-                soup = BeautifulSoup(r.content)
+                r = requests.get(follower_url)
+
+                soup = BeautifulSoup(r.content, "lxml")
                 for i in xrange((followers_num - 1) / 20 + 1):
                     if i == 0:
                         user_url_list = soup.find_all("h2", class_="zm-list-content-title")
@@ -630,83 +530,50 @@ class User:
                             'Host': "www.zhihu.com",
                             'Referer': follower_url
                         }
-                        has_cookies = False
-                        for key in cookies:
-                            if key != '__name__' and cookies[key] != '':
-                                has_cookies = True
-                                r_post = s.post(post_url, data=data, headers=header, cookies=cookies)
-                                break
-                        if has_cookies == False:
-                            r_post = s.post(post_url, data=data, headers=header)
+                        r_post = requests.post(post_url, data=data, headers=header)
+
                         follower_list = r_post.json()["msg"]
                         for j in xrange(min(followers_num - i * 20, 20)):
-                            follower_soup = BeautifulSoup(follower_list[j])
+                            follower_soup = BeautifulSoup(follower_list[j], "lxml")
                             user_link = follower_soup.find("h2", class_="zm-list-content-title").a
                             yield User(user_link["href"], user_link.string.encode("utf-8"))
 
     def get_asks(self):
-
-        global session
-        global cookies
-
         if self.user_url == None:
             print "I'm anonymous user."
             return
             yield
         else:
             asks_num = self.get_asks_num()
-            if session == None:
-                create_session()
-            s = session
             if asks_num == 0:
                 return
                 yield
             else:
                 for i in xrange((asks_num - 1) / 20 + 1):
                     ask_url = self.user_url + "/asks?page=" + str(i + 1)
-                    has_cookies = False
-                    for key in cookies:
-                        if key != '__name__' and cookies[key] != '':
-                            has_cookies = True
-                            r = s.get(ask_url, cookies=cookies)
-                            break
-                    if has_cookies == False:
-                        r = s.get(ask_url)
-                    soup = BeautifulSoup(r.content)
+                    r = requests.get(ask_url)
+                    
+                    soup = BeautifulSoup(r.content, "lxml")
                     for question in soup.find_all("a", class_="question_link"):
                         url = "http://www.zhihu.com" + question["href"]
                         title = question.string.encode("utf-8")
                         yield Question(url, title)
 
     def get_answers(self):
-
-        global session
-        global cookies
-
         if self.user_url == None:
             print "I'm anonymous user."
             return
             yield
         else:
             answers_num = self.get_answers_num()
-            if session == None:
-                create_session()
-            s = session
             if answers_num == 0:
                 return
                 yield
             else:
                 for i in xrange((answers_num - 1) / 20 + 1):
                     answer_url = self.user_url + "/answers?page=" + str(i + 1)
-                    has_cookies = False
-                    for key in cookies:
-                        if key != '__name__' and cookies[key] != '':
-                            has_cookies = True
-                            r = s.get(answer_url, cookies=cookies)
-                            break
-                    if has_cookies == False:
-                        r = s.get(answer_url)
-                    soup = BeautifulSoup(r.content)
+                    r = requests.get(answer_url)
+                    soup = BeautifulSoup(r.content, "lxml")
                     for answer in soup.find_all("a", class_="question_link"):
                         question_url = "http://www.zhihu.com" + answer["href"][0:18]
                         question_title = answer.string.encode("utf-8")
@@ -714,34 +581,22 @@ class User:
                         yield Answer("http://www.zhihu.com" + answer["href"], question, self)
 
     def get_collections(self):
-
-        global session
-        global cookies
-
         if self.user_url == None:
             print "I'm anonymous user."
             return
             yield
         else:
             collections_num = self.get_collections_num()
-            if session == None:
-                create_session()
-            s = session
             if collections_num == 0:
                 return
                 yield
             else:
                 for i in xrange((collections_num - 1) / 20 + 1):
                     collection_url = self.user_url + "/collections?page=" + str(i + 1)
-                    has_cookies = False
-                    for key in cookies:
-                        if key != '__name__' and cookies[key] != '':
-                            has_cookies = True
-                            r = s.get(collection_url, cookies=cookies)
-                            break
-                    if has_cookies == False:
-                        r = s.get(collection_url)
-                    soup = BeautifulSoup(r.content)
+                    
+                    r = requests.get(collection_url)
+
+                    soup = BeautifulSoup(r.content, "lxml")
                     for collection in soup.find_all("div", class_="zm-profile-section-item zg-clear"):
                         url = "http://www.zhihu.com" + \
                               collection.find("a", class_="zm-profile-fav-item-title")["href"]
@@ -766,33 +621,9 @@ class Answer:
         if content != None:
             self.content = content
 
-    # def create_session(self):
-    # cf = ConfigParser.ConfigParser()
-    # cf.read("config.ini")
-    # email = cf.get("info", "email")
-    # password = cf.get("info", "password")
-    # s = requests.session()
-    # login_data = {"email": email, "password": password}
-    # s.post('http://www.zhihu.com/login', login_data)
-    # self.session = s
-
     def parser(self):
-
-        global session
-        global cookies
-
-        if session == None:
-            create_session()
-        s = session
-        has_cookies = False
-        for key in cookies:
-            if key != '__name__' and cookies[key] != '':
-                has_cookies = True
-                r = s.get(self.answer_url, cookies=cookies)
-                break
-        if has_cookies == False:
-            r = s.get(self.answer_url)
-        soup = BeautifulSoup(r.content)
+        r = requests.get(self.answer_url)
+        soup = BeautifulSoup(r.content, "lxml")
         self.soup = soup
 
     def get_question(self):
@@ -1064,36 +895,9 @@ class Collection:
                 self.name = name
             if creator != None:
                 self.creator = creator
-
-    # def create_session(self):
-    # cf = ConfigParser.ConfigParser()
-    # cf.read("config.ini")
-    # email = cf.get("info", "email")
-    # password = cf.get("info", "password")
-    # s = requests.session()
-    # login_data = {"email": email, "password": password}
-    # s.post('http://www.zhihu.com/login', login_data)
-    # self.session = s
-
     def parser(self):
-
-        global session
-        global cookies
-
-        if session == None:
-            create_session()
-        s = session
-        has_cookies = False
-        for key in cookies:
-            if key != '__name__' and cookies[key] != '':
-                has_cookies = True
-                r = s.get(self.url, cookies=cookies)
-                break
-        # print 'has_cookies', has_cookies
-        if has_cookies == False:
-            r = s.get(self.url)
-        # print 'r', r.content
-        soup = BeautifulSoup(r.content)
+        r = requests.get(self.url)
+        soup = BeautifulSoup(r.content, "lxml")
         self.soup = soup
 
     def get_name(self):
@@ -1125,10 +929,6 @@ class Collection:
             return creator
 
     def get_all_answers(self):
-
-        global session
-        global cookies
-
         if self.soup == None:
             self.parser()
         soup = self.soup
@@ -1160,16 +960,8 @@ class Collection:
                         author = User(author_url, author_id)
                     yield Answer(answer_url, question, author)
             i = 2
-            s = session
             while True:
-                has_cookies = False
-                for key in cookies:
-                    if key != '__name__' and cookies[key] != '':
-                        has_cookies = True
-                        r = s.get(self.url + "?page=" + str(i), cookies=cookies)
-                        break
-                if has_cookies == False:
-                    r = s.get(self.url + "?page=" + str(i))
+                r = requests.get(self.url + "?page=" + str(i))
                 answer_soup = BeautifulSoup(r.content)
                 answer_list = answer_soup.find_all("div", class_="zm-item")
                 if len(answer_list) == 0:

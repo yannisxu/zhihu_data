@@ -133,8 +133,9 @@ def upload_form(form):
         'Referer': "http://www.zhihu.com/",
         'X-Requested-With': "XMLHttpRequest"
     }
- 
+    
     r = requests.post(url, data=form, headers=headers)
+
     if int(r.status_code) != 200:
         raise NetworkError(u"表单上传失败!")
 

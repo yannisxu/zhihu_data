@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-05 23:28:43
+# @Last Modified time: 2015-09-13 18:08:46
 
 from zhihu import User
 
@@ -45,3 +45,5 @@ print answers_num # 786
 print collections_num # 44
 print agree_num # 46387
 print thanks_num # 11477
+
+next(followees)

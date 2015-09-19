@@ -365,6 +365,9 @@ class User:
                 else:
                     return user_id
 
+    def get_user_url(self):
+        return self.user_url
+
     def get_data_id(self):
         if self.user_url == None:
             print "I'm anonymous user."

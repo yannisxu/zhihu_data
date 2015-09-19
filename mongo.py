@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # @Author: yannisxu
 # @Date:   2015-09-14 01:17:38
-# @Last Modified by:   yannisxu
-# @Last Modified time: 2015-09-19 10:48:25
+# @Last Modified by:   xuyannis
+# @Last Modified time: 2015-09-19 12:17:17
 
 from mongoengine import *
 from ConfigParser import ConfigParser
@@ -40,6 +40,7 @@ class Users(Document):
     thanks_num = IntField()
     url = StringField()
     create_time = DateTimeField(default = datetime.utcnow())
+    modify_time = DateTimeField()
 
 
 # user = Users(_id = 22222312, name = "asdad")

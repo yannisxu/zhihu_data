@@ -3,10 +3,11 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   yannisxu
-# @Last Modified time: 2015-09-19 11:11:00
+# @Last Modified time: 2015-09-19 12:23:43
 
 from zhihu import User
 from mongo import Users
+from datetime import datetime
 import logging
 
 logging.basicConfig(filename='example.log', level=logging.INFO)
@@ -16,7 +17,6 @@ user_url = "http://www.zhihu.com/people/jixin"
 
 user_grab = User(user_url)
 user = Users()
-
 
 if Users.objects(data_id = user_grab.get_data_id()).count():
 	user = Users.objects(data_id = user_grab.get_data_id()).first()
@@ -30,8 +30,10 @@ user.answers_num = user_grab.get_answers_num()
 user.collections_num = user_grab.get_collections_num()
 user.agree_num = user_grab.get_agree_num()
 user.thanks_num = user_grab.get_thanks_num()
-user.thanks_num = 123456
-user.url = user_url
+user.thanks_num = user_grab.get_thanks_num()
+user.url = user_grab.get_user_url()
+user.modify_time = datetime.utcnow()
+
 
 user.save()
 
@@ -54,7 +56,8 @@ for i, user_grab in enumerate(followees):
 	user.collections_num = user_grab.get_collections_num()
 	user.agree_num = user_grab.get_agree_num()
 	user.thanks_num = user_grab.get_thanks_num()
-	user.url = user_url
+	user.url = user_grab.get_user_url()
+	user.modify_time = datetime.utcnow()
 
 	user.save()
 	logging.info("followees:" + str(i))
@@ -73,7 +76,8 @@ for i, user_grab in enumerate(followers):
 	user.collections_num = user_grab.get_collections_num()
 	user.agree_num = user_grab.get_agree_num()
 	user.thanks_num = user_grab.get_thanks_num()
-	user.url = user_url
+	user.url = user_grab.get_user_url()
+	user.modify_time = datetime.utcnow()
 
 	user.save()
 	logging.info("followers:" + str(i))

@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-24 03:40:15
+# @Last Modified time: 2015-09-24 04:19:43
 
 from zhihu import User
 from mongo import Users
@@ -87,5 +87,6 @@ for i, user_grab in enumerate(followers):
 
 	user.save()
 	logging.info("followers:" + str(i))
+	logging.info(str(datetime.now()))
 
 logging.info("finish")

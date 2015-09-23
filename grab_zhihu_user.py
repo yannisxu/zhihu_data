@@ -72,7 +72,7 @@ for i, user_grab in enumerate(followers):
 			break
 		except Exception, e:
 			print e
-			sleep(300)
+			time.sleep(300)
 	user.user_id = user_grab.get_user_id()
 	user.data_id = user_grab.get_data_id()
 	user.followees_num = user_grab.get_followees_num()

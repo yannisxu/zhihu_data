@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-24 04:19:43
+# @Last Modified time: 2015-09-24 15:18:38
 
 from zhihu import User
 from mongo import Users
@@ -77,7 +77,11 @@ for i, user_grab in enumerate(followers):
 	user.data_id = user_grab.get_data_id()
 	user.followees_num = user_grab.get_followees_num()
 	user.followers_num = user_grab.get_followers_num()
-	user.asks_num = user_grab.get_asks_num()
+	try:
+		user.asks_num = user_grab.get_asks_num()
+	except Exception, e:
+		print e
+		print user_grab.get_user_url()
 	user.answers_num = user_grab.get_answers_num()
 	user.collections_num = user_grab.get_collections_num()
 	user.agree_num = user_grab.get_agree_num()

@@ -547,13 +547,15 @@ class User:
                             'Referer': follower_url
                         }
                         r_post = requests.post(post_url, data=data, headers=header)
-
-                        follower_list = r_post.json()["msg"]
-                        for j in xrange(min(followers_num - i * 20, 20)):
-                            follower_soup = BeautifulSoup(follower_list[j])
-                            user_link = follower_soup.find("h2", class_="zm-list-content-title").a
-                            yield User(user_link["href"], user_link.string.encode("utf-8"))
-
+                        try:
+                            follower_list = r_post.json()["msg"]    
+                            for j in xrange(min(followers_num - i * 20, 20)):
+                                follower_soup = BeautifulSoup(follower_list[j])
+                                user_link = follower_soup.find("h2", class_="zm-list-content-title").a
+                                yield User(user_link["href"], user_link.string.encode("utf-8"))
+                        except Exception, e:
+                            print e
+                        
     def get_asks(self):
         if self.user_url == None:
             print "I'm anonymous user."

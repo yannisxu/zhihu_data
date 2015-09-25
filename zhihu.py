@@ -533,7 +533,7 @@ class User:
                     else:
                         post_url = "http://www.zhihu.com/node/ProfileFollowersListV2"
                         _xsrf = soup.find("input", attrs={'name': '_xsrf'})["value"]
-                        offset = i * 20 + 61000
+                        offset = i * 20 + 72500
                         hash_id = re.findall("hash_id&quot;: &quot;(.*)&quot;},", r.text)[0]
                         params = json.dumps({"offset": offset, "order_by": "created", "hash_id": hash_id})
                         data = {
@@ -554,7 +554,8 @@ class User:
                                 user_link = follower_soup.find("h2", class_="zm-list-content-title").a
                                 yield User(user_link["href"], user_link.string.encode("utf-8"))
                         except Exception, e:
-                            print e
+                            print r_post.text
+                            time.sleep(1000)
                         
     def get_asks(self):
         if self.user_url == None:

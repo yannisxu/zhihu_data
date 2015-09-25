@@ -437,7 +437,10 @@ class User:
                 asks_num = int(soup.find_all("span", class_="num")[0].string)
             except Exception, e:
                 print e
+                print "############################################################"
+                print self.user_url
                 print soup
+                print "############################################################"
             return asks_num
 
     def get_answers_num(self):

@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-25 09:28:28
+# @Last Modified time: 2015-09-25 14:10:46
 
 from zhihu import User
 from mongo import Users
@@ -107,10 +107,10 @@ class myThread(threading.Thread):
 
     def run(self):
         print "Starting" + self.name
-        grab(self.url)
+        grab(self.url, self.threadID)
         print "Ending" + self.name
 
-def grab(url):
+def grab(url, threadID):
     print url
     user_grab = User(url)
     followers = user_grab.get_followers()
@@ -143,7 +143,7 @@ def grab(url):
         user.modify_time = datetime.utcnow()
 
         user.save()
-        logging.info("followers:" + str(i))
+        logging.info("followers:" + str(i) + "threadID:" + str(threadID))
         logging.info(str(datetime.now()))
 
     
@@ -151,10 +151,14 @@ def grab(url):
 thread1 = myThread(1, "线程1", 5, "http://www.zhihu.com/people/kaifulee")
 thread2 = myThread(2, "线程2", 5, "http://www.zhihu.com/people/jixin")
 thread3 = myThread(3, "线程3", 6, "http://www.zhihu.com/people/zhouyuan")
+thread4 = myThread(4, "线程4", 6, "http://www.zhihu.com/people/xiepanda")
+thread5 = myThread(5, "线程5", 6, "http://www.zhihu.com/people/feifeimao")
+
 
 thread1.start()
 thread2.start()
 thread3.start()
-
+thread4.start()
+thread5.start()
 
 logging.info("finish")

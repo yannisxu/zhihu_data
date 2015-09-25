@@ -433,7 +433,11 @@ class User:
             if self.soup == None:
                 self.parser()
             soup = self.soup
-            asks_num = int(soup.find_all("span", class_="num")[0].string)
+            try:
+                asks_num = int(soup.find_all("span", class_="num")[0].string)
+            except Exception, e:
+                print e
+                print soup
             return asks_num
 
     def get_answers_num(self):
@@ -526,7 +530,7 @@ class User:
                     else:
                         post_url = "http://www.zhihu.com/node/ProfileFollowersListV2"
                         _xsrf = soup.find("input", attrs={'name': '_xsrf'})["value"]
-                        offset = i * 20
+                        offset = i * 20 + 61000
                         hash_id = re.findall("hash_id&quot;: &quot;(.*)&quot;},", r.text)[0]
                         params = json.dumps({"offset": offset, "order_by": "created", "hash_id": hash_id})
                         data = {

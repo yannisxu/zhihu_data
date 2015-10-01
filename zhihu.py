@@ -52,6 +52,7 @@
 # Build-in / Std
 import os, sys, time, platform, random
 import re, json, cookielib
+import logging
 
 # requirements
 import requests, termcolor, html2text
@@ -60,9 +61,11 @@ try:
 except:
     import BeautifulSoup
 
+
 # module
 from auth import islogin
 from auth import Logging
+
 
 
 """
@@ -533,7 +536,7 @@ class User:
                     else:
                         post_url = "http://www.zhihu.com/node/ProfileFollowersListV2"
                         _xsrf = soup.find("input", attrs={'name': '_xsrf'})["value"]
-                        offset = i * 20 + 72500
+                        offset = i * 20 + 210000
                         hash_id = re.findall("hash_id&quot;: &quot;(.*)&quot;},", r.text)[0]
                         params = json.dumps({"offset": offset, "order_by": "created", "hash_id": hash_id})
                         data = {
@@ -547,6 +550,7 @@ class User:
                             'Referer': follower_url
                         }
                         r_post = requests.post(post_url, data=data, headers=header)
+                        logging.info(str(i))
                         try:
                             follower_list = r_post.json()["msg"]    
                             for j in xrange(min(followers_num - i * 20, 20)):
@@ -554,7 +558,7 @@ class User:
                                 user_link = follower_soup.find("h2", class_="zm-list-content-title").a
                                 yield User(user_link["href"], user_link.string.encode("utf-8"))
                         except Exception, e:
-                            print r_post.text
+                            logging.error(r_post.text)
                             time.sleep(1000)
                         
     def get_asks(self):

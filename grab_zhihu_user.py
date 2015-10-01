@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-25 14:10:46
+# @Last Modified time: 2015-10-01 20:57:08
 
 from zhihu import User
 from mongo import Users
@@ -106,9 +106,9 @@ class myThread(threading.Thread):
         self.url = url
 
     def run(self):
-        print "Starting" + self.name
+        logging.info("Starting" + self.name)
         grab(self.url, self.threadID)
-        print "Ending" + self.name
+        logging.info("Ending" + self.name)
 
 def grab(url, threadID):
     print url
@@ -123,7 +123,7 @@ def grab(url, threadID):
                     user = Users.objects(data_id = user_grab.get_data_id()).first()
                 break
             except Exception, e:
-                print e
+                logging.error(e)
                 time.sleep(300)
         user.user_id = user_grab.get_user_id()
         user.data_id = user_grab.get_data_id()
@@ -134,8 +134,8 @@ def grab(url, threadID):
             user.answers_num = user_grab.get_answers_num()
             user.collections_num = user_grab.get_collections_num()
         except Exception, e:
-            print e
-            print user_grab.get_user_url()
+            logging.error(e)
+            logging.debug(user_grab.get_user_url())
     
         user.agree_num = user_grab.get_agree_num()
         user.thanks_num = user_grab.get_thanks_num()
@@ -148,17 +148,19 @@ def grab(url, threadID):
 
     
         
-thread1 = myThread(1, "线程1", 5, "http://www.zhihu.com/people/kaifulee")
-thread2 = myThread(2, "线程2", 5, "http://www.zhihu.com/people/jixin")
-thread3 = myThread(3, "线程3", 6, "http://www.zhihu.com/people/zhouyuan")
-thread4 = myThread(4, "线程4", 6, "http://www.zhihu.com/people/xiepanda")
-thread5 = myThread(5, "线程5", 6, "http://www.zhihu.com/people/feifeimao")
+#thread1 = myThread(1, "线程1", 5, "http://www.zhihu.com/people/zeng-kai-87")
+#thread2 = myThread(2, "线程2", 5, "http://www.zhihu.com/people/wangxiaofeng")
+#thread3 = myThread(3, "线程3", 6, "http://www.zhihu.com/people/zhouyuan")
+# thread4 = myThread(4, "线程4", 6, "http://www.zhihu.com/people/xiepanda")
+# thread5 = myThread(5, "线程5", 6, "http://www.zhihu.com/people/feifeimao")
 
 
-thread1.start()
-thread2.start()
-thread3.start()
-thread4.start()
-thread5.start()
+#thread1.start()
+#thread2.start()
+#thread3.start()
+# thread4.start()
+# thread5.start()
+
+grab("http://www.zhihu.com/people/zhouyuan", 3)
 
 logging.info("finish")

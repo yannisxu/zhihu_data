@@ -3,7 +3,7 @@
 # @Author: xuyannis
 # @Date:   2015-09-05 23:26:10
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-10-01 20:57:08
+# @Last Modified time: 2015-10-03 20:07:56
 
 from zhihu import User
 from mongo import Users
@@ -12,7 +12,7 @@ import threading
 import logging
 import time
 
-logging.basicConfig(filename='example.log', level=logging.INFO)
+logging.basicConfig(filename='example.log', format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName)s %(message)s", level=logging.INFO)
 
 # user_url = "http://www.zhihu.com/people/kaifulee"
 # user_grab = User(user_url)
@@ -123,6 +123,7 @@ def grab(url, threadID):
                     user = Users.objects(data_id = user_grab.get_data_id()).first()
                 break
             except Exception, e:
+                logging.error("========error1")
                 logging.error(e)
                 time.sleep(300)
         user.user_id = user_grab.get_user_id()
@@ -134,6 +135,7 @@ def grab(url, threadID):
             user.answers_num = user_grab.get_answers_num()
             user.collections_num = user_grab.get_collections_num()
         except Exception, e:
+            logging.error("========error2")
             logging.error(e)
             logging.debug(user_grab.get_user_url())
     

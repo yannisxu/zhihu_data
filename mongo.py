@@ -3,7 +3,7 @@
 # @Author: yannisxu
 # @Date:   2015-09-14 01:17:38
 # @Last Modified by:   xuyannis
-# @Last Modified time: 2015-09-19 12:17:17
+# @Last Modified time: 2015-10-21 11:51:25
 
 from mongoengine import *
 from ConfigParser import ConfigParser
@@ -42,6 +42,11 @@ class Users(Document):
     create_time = DateTimeField(default = datetime.utcnow())
     modify_time = DateTimeField()
 
+class Queue(Document):
+    url = StringField(unique = True)
+    create_time = DateTimeField(default = datetime.utcnow())
+    modify_time = DateTimeField()
+    is_traversal = BooleanField(default = False)
 
 # user = Users(_id = 22222312, name = "asdad")
 # user.followees_num = 12313
